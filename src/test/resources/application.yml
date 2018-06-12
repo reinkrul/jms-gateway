@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    type: com.zaxxer.hikari.HikariDataSource
+    url: jdbc:h2:mem:TEST
+    driver-class-name: org.h2.Driver
+    username: username
+    password: password
+    schema: schema.sql
+    hikari:
+      idle-timeout: 10000
+
+jms:
+  provider: artemis
+  url: tcp://vm390.pec.sbp.avisi.nl:61616
+  authentication:
+    user: artemis
+    password: simetraehcapa
