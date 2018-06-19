@@ -1,3 +1,7 @@
+/**
+ * For licensing, see LICENSE.txt
+ * @author Rein Krul
+ */
 package nl.reinkrul.jmsgateway.jms.artemis
 
 import nl.reinkrul.jmsgateway.JmsConfiguration

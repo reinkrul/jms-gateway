@@ -1,3 +1,7 @@
+/**
+ * For licensing, see LICENSE.txt
+ * @author Rein Krul
+ */
 package nl.reinkrul.jmsgateway
 
 
@@ -12,7 +16,7 @@ class EngineTest {
 
     @Test
     fun `failed delivery is registered`() {
-        val message = Message(UUID.randomUUID(), "", MessageStatus.PENDING, "test")
+        val message = Message(UUID.randomUUID(), "", MessageStatus.PENDING, "test", 0)
         val messageSource = mock<MessageSource>()
         whenever(messageSource.acquire()).thenReturn(message)
         val messageConsumer = mock<MessageConsumer>()

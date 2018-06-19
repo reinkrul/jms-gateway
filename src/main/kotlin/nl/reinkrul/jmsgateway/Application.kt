@@ -1,3 +1,7 @@
+/**
+ * For licensing, see LICENSE.txt
+ * @author Rein Krul
+ */
 package nl.reinkrul.jmsgateway
 
 import org.springframework.beans.factory.annotation.Autowired
@@ -5,6 +9,7 @@ import org.springframework.boot.SpringBootConfiguration
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.context.annotation.Bean
+import org.springframework.core.annotation.Order
 import org.springframework.core.env.Environment
 import org.springframework.core.env.get
 import org.springframework.scheduling.TaskScheduler
@@ -14,6 +19,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler
 @SpringBootConfiguration
 @EnableAsync
 @SpringBootApplication
+@Order(10)
 class Application {
 
     @Autowired

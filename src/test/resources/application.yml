@@ -11,7 +11,7 @@ spring:
 
 jms:
   provider: artemis
-  url: tcp://vm390.pec.sbp.avisi.nl:61616
-  authentication:
-    user: artemis
-    password: simetraehcapa
+  url: vm://0
+#  authentication:
+#    user: activemq
+#    password: activemq

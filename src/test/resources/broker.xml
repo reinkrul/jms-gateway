@@ -1,0 +1,19 @@
+<configuration xmlns="urn:activemq"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="urn:activemq /schema/artemis-configuration.xsd">
+    <jms xmlns="urn:activemq:jms">
+        <queue name="test"/>
+
+        <address-setting match="#">
+            <auto-create-jms-queues>false</auto-create-jms-queues>
+        </address-setting>
+    </jms>
+    <core xmlns="urn:activemq:core">
+        <security-enabled>false</security-enabled>
+        <name>0.0.0.0</name>
+        <persistence-enabled>false</persistence-enabled>
+        <acceptors>
+            <acceptor name="in-vm">vm://0</acceptor>
+        </acceptors>
+    </core>
+</configuration>

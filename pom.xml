@@ -25,7 +25,7 @@
         <nimbus.version>5.10</nimbus.version>
         <spring-boot.version>2.0.2.RELEASE</spring-boot.version>
         <spring-framework.version>5.0.5.RELEASE</spring-framework.version>
-        <artemis.version>2.6.0</artemis.version>
+        <artemis.version>2.6.1</artemis.version>
     </properties>
 
     <dependencyManagement>
@@ -65,7 +65,6 @@
                 <version>${kotlin.version}</version>
                 <configuration>
                     <compilerPlugins>
-                        <plugin>jpa</plugin>
                         <plugin>spring</plugin>
                         <plugin>all-open</plugin>
                     </compilerPlugins>
@@ -84,7 +83,6 @@
                         </goals>
                         <configuration>
                             <sourceDirs>
-                                <sourceDir>${project.basedir}/target/generated/cxf</sourceDir>
                                 <sourceDir>${project.build.sourceDirectory}</sourceDir>
                             </sourceDirs>
                         </configuration>
@@ -196,6 +194,12 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-jdbc</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -251,7 +255,7 @@
             <groupId>org.apache.activemq</groupId>
             <artifactId>artemis-server</artifactId>
             <version>${artemis.version}</version>
-            <classifier>test</classifier>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

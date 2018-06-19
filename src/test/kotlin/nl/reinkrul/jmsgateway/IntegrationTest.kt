@@ -1,5 +1,11 @@
+/**
+ * For licensing, see LICENSE.txt
+ * @author Rein Krul
+ */
 package nl.reinkrul.jmsgateway
 
+import nl.reinkrul.jmsgateway.jdbc.parseMessage
+import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.springframework.beans.factory.annotation.Autowired
@@ -12,14 +18,14 @@ import java.time.Duration
 import java.time.LocalDateTime
 import java.util.UUID
 import javax.sql.DataSource
-import kotlin.math.max
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlin.test.fail
 
 @RunWith(SpringRunner::class)
-@SpringBootTest
+@SpringBootTest(classes = [IntegrationTestConfiguration::class, Application::class])
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-class IntegrationTest {
+class IntegrationTest : IntegrationTestBase() {
 
     @Autowired
     private lateinit var messageConsumer: MessageConsumer
@@ -32,7 +38,7 @@ class IntegrationTest {
         dataSource.connection.use {
             insert(it)
         }
-        Thread.sleep(2000)
+        Thread.sleep(1000)
         assertEquals(1, messageConsumer.messagesConsumed)
         dataSource.connection.use {
             assertStatus(it, MessageStatus.DELIVERED)
@@ -56,7 +62,7 @@ class IntegrationTest {
             if (startTime.plus(maxWaitTime).isBefore(LocalDateTime.now())) {
                 fail("Waited for $maxWaitTime to receive $numberOfMessages messages, but received just ${messageConsumer.messagesConsumed}")
             }
-        } while(messageConsumer.messagesConsumed < numberOfMessages)
+        } while (messageConsumer.messagesConsumed < numberOfMessages)
         assertEquals(numberOfMessages, messageConsumer.messagesConsumed)
         dataSource.connection.use {
             assertStatus(it, MessageStatus.DELIVERED)
@@ -64,13 +70,48 @@ class IntegrationTest {
     }
 
     @Test
+    @Ignore
     fun `failed message - unknown queue`() {
         val id = dataSource.connection.use {
             insert(it, "non-existing-queue")
         }
         Thread.sleep(2000)
         dataSource.connection.use {
-            assertStatus(it, MessageStatus.PENDING, id)
+            assertStatus(it, id, MessageStatus.PENDING)
+        }
+    }
+
+    @Test
+    fun `failed message - disconnected session`() {
+        // Make sure the session is open
+        val id1 = dataSource.connection.use {
+            insert(it, "test")
+        }
+        Thread.sleep(1000)
+        dataSource.connection.use {
+            assertStatus(it, id1, MessageStatus.DELIVERED)
+        }
+
+        // Now stop the broker, causing the connections to disconnect
+        activemq.stop()
+
+        // Now insert a message, and assert it isn't delivered
+        val id2 = dataSource.connection.use {
+            insert(it, "test")
+        }
+        Thread.sleep(1000)
+        dataSource.connection.use {
+            assertStatus(it, id2, MessageStatus.PENDING)
+        }
+
+        // Now start the broker, insert message and assert it's delivered
+        activemq.start()
+        val id3 = dataSource.connection.use {
+            insert(it, "test")
+        }
+        Thread.sleep(1000)
+        dataSource.connection.use {
+            assertStatus(it, id3, MessageStatus.DELIVERED)
         }
     }
 
@@ -86,11 +127,11 @@ class IntegrationTest {
         return id
     }
 
-    private fun assertStatus(connection: Connection, expected: MessageStatus, messageId: String) {
+    private fun assertStatus(connection: Connection, messageId: String, vararg expected: MessageStatus) {
         connection.createStatement().use {
             it.executeQuery("SELECT * FROM jms_message WHERE id='$messageId'").use {
                 if (it.next()) {
-                    assertStatus(expected, it)
+                    assertStatus(arrayOf(*expected), parseMessage(it))
                 } else {
                     fail("Message not found: $messageId")
                 }
@@ -98,17 +139,17 @@ class IntegrationTest {
         }
     }
 
-    private fun assertStatus(connection: Connection, expected: MessageStatus) {
+    private fun assertStatus(connection: Connection, vararg expected: MessageStatus) {
         connection.createStatement().use {
-            it.executeQuery("SELECT id, status FROM jms_message").use {
+            it.executeQuery("SELECT * FROM jms_message").use {
                 while (it.next()) {
-                    assertStatus(expected, it)
+                    assertStatus(arrayOf(*expected), parseMessage(it))
                 }
             }
         }
     }
 
-    private fun assertStatus(expected: MessageStatus, it: ResultSet) {
-        assertEquals(expected, MessageStatus.valueOf(it.getString("status")), "Expected message ${it.getString("id")} to have status $expected")
+    private fun assertStatus(expected: Array<MessageStatus>, actual: Message) {
+        assertTrue("Expected message ${actual.id} to have status ${expected.asList()}, but was ${actual.status}", { expected.contains(actual.status) })
     }
 }

@@ -1,3 +1,7 @@
+/**
+ * For licensing, see LICENSE.txt
+ * @author Rein Krul
+ */
 package nl.reinkrul.jmsgateway.jdbc
 
 import nl.reinkrul.jmsgateway.Message
@@ -91,13 +95,14 @@ class JdbcMessageSource : MessageSource {
             }
         }
     }
+}
 
-    private fun parseMessage(result: ResultSet): Message {
-        return Message(
-                id = UUID.fromString(result.getString("id")),
-                data = result.getString("data"),
-                status = result.getString("status").let(MessageStatus::valueOf),
-                queue = result.getString("queue")
-        )
-    }
+fun parseMessage(result: ResultSet): Message {
+    return Message(
+            id = UUID.fromString(result.getString("id")),
+            data = result.getString("data"),
+            status = result.getString("status").let(MessageStatus::valueOf),
+            queue = result.getString("queue"),
+            retries = result.getInt("retries")
+    )
 }

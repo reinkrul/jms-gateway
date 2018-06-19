@@ -1,3 +1,7 @@
+/**
+ * For licensing, see LICENSE.txt
+ * @author Rein Krul
+ */
 package nl.reinkrul.jmsgateway
 
 import org.slf4j.LoggerFactory
@@ -30,7 +34,7 @@ class Engine(@Autowired private val messageSource: MessageSource,
 
     private fun consume() {
         val message = messageSource.acquire()
-        log.info("Processing message: {}", message.id)
+        log.info("Processing message: {} (retries: {})", message.id, message.retries)
         try {
             messageConsumer.consume(message)
         } catch (e: Exception) {
