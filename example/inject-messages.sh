@@ -1,0 +1,1 @@
+docker exec -it example_database_1 psql -U postgres -c "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"; insert into jms_message values (uuid_generate_v4(), 'PENDING', 'foobar', 'test', 3, 0, NOW());"

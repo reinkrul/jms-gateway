@@ -1,5 +1,5 @@
 create table jms_message(
-  id VARCHAR(36) NOT NULL  PRIMARY KEY,
+  id VARCHAR(36) NOT NULL PRIMARY KEY,
   status VARCHAR(10) NOT NULL DEFAULT 'PENDING',
   data TEXT not null,
   queue VARCHAR(100) NOT NULL,

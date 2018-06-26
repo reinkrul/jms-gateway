@@ -51,3 +51,8 @@ class Application {
 fun main(args: Array<String>) {
     runApplication<Application>(*args)
 }
+
+/**
+ * Indicates that a subcomponent detected a problem, which did prevent it from functioning properly, but is probably recoverable.
+ */
+abstract class RecoverableException(message: String, cause: Throwable? = null) : Exception(message, cause)

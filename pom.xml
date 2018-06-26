@@ -12,7 +12,7 @@
         <!--Plugins-->
         <maven-compiler-plugin.version>3.7.0</maven-compiler-plugin.version>
         <maven-dependency-plugin.version>3.1.1</maven-dependency-plugin.version>
-        <maven-docker-plugin.version>1.1.0</maven-docker-plugin.version>
+        <dockerfile-maven-version>1.4.3</dockerfile-maven-version>
 
         <!--Kotlin stuff-->
         <kotlin.compiler.incremental>true</kotlin.compiler.incremental>
@@ -114,35 +114,42 @@
             </plugin>
             <plugin>
                 <groupId>com.spotify</groupId>
-                <artifactId>docker-maven-plugin</artifactId>
-                <version>${maven-docker-plugin.version}</version>
+                <artifactId>dockerfile-maven-plugin</artifactId>
+                <version>${dockerfile-maven-version}</version>
                 <executions>
                     <execution>
-                        <phase>package</phase>
+                        <id>default</id>
                         <goals>
                             <goal>build</goal>
+                            <goal>push</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>tag-latest</id>
+                        <goals>
+                            <goal>tag</goal>
                         </goals>
                         <configuration>
-                            <imageName>pec/${project.artifactId}</imageName>
-                            <imageTags>
-                                <imageTag>${project.version}</imageTag>
-                                <imageTag>latest</imageTag>
-                            </imageTags>
-                            <noCache>true</noCache>
-                            <dockerDirectory>${project.basedir}/src/main/docker</dockerDirectory>
-                            <resources>
-                                <resource>
-                                    <targetPath>/</targetPath>
-                                    <directory>${project.build.directory}</directory>
-                                    <includes>
-                                        <include>*.jar</include>
-                                        <include>entrypoint.sh</include>
-                                    </includes>
-                                </resource>
-                            </resources>
+                            <tag>latest</tag>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>tag-version</id>
+                        <goals>
+                            <goal>tag</goal>
+                        </goals>
+                        <configuration>
+                            <tag>${project.version}</tag>
                         </configuration>
                     </execution>
                 </executions>
+                <configuration>
+                    <repository>reinkrul/jms-gateway</repository>
+                    <tag>${project.version}</tag>
+                    <buildArgs>
+                        <JAR_FILE>${project.build.finalName}.jar</JAR_FILE>
+                    </buildArgs>
+                </configuration>
             </plugin>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -210,6 +217,15 @@
             <artifactId>slf4j-simple</artifactId>
         </dependency>
 
+        <!-- Databases -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.2.2</version>
+            <scope>runtime</scope>
+        </dependency>
+
+
         <!-- ActiveMQ Artemis -->
         <dependency>
             <groupId>org.apache.activemq</groupId>
@@ -249,7 +265,7 @@
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <version>${h2.version}</version>
-            <scope>compile</scope>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.activemq</groupId>

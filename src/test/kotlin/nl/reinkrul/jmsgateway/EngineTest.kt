@@ -6,6 +6,7 @@ package nl.reinkrul.jmsgateway
 
 
 import com.nhaarman.mockito_kotlin.any
+import com.nhaarman.mockito_kotlin.doThrow
 import com.nhaarman.mockito_kotlin.mock
 import com.nhaarman.mockito_kotlin.verify
 import com.nhaarman.mockito_kotlin.whenever
@@ -20,7 +21,7 @@ class EngineTest {
         val messageSource = mock<MessageSource>()
         whenever(messageSource.acquire()).thenReturn(message)
         val messageConsumer = mock<MessageConsumer>()
-        whenever(messageConsumer.consume(any())).thenThrow(IllegalStateException())
+        doThrow(TestException()).whenever(messageConsumer).consume(any())
 
         val engine = Engine(messageSource, messageConsumer)
         val thread = Thread({ engine.start() })
@@ -30,4 +31,19 @@ class EngineTest {
 
         verify(messageSource).registerDeliveryFailed(message)
     }
+
+    @Test
+    fun `error while acquiring message`() {
+        val messageSource = mock<MessageSource>()
+        doThrow(TestException()).whenever(messageSource).acquire()
+        val messageConsumer = mock<MessageConsumer>()
+
+        val engine = Engine(messageSource, messageConsumer)
+        val thread = Thread({ engine.start() })
+        thread.start()
+        thread.interrupt()
+        thread.join()
+    }
+
+    private class TestException : RecoverableException("Error")
 }

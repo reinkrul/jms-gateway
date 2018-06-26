@@ -4,6 +4,7 @@
  */
 package nl.reinkrul.jmsgateway.jms
 
+import nl.reinkrul.jmsgateway.RecoverableException
 import nl.reinkrul.jmsgateway.JmsConfiguration
 import nl.reinkrul.jmsgateway.Message
 import nl.reinkrul.jmsgateway.MessageConsumer
@@ -49,6 +50,14 @@ class JmsMessageConsumer : MessageConsumer {
         get() = numConsumed
 
     @PostConstruct
+    private fun initialize() {
+        try {
+            connect()
+        } catch (e: Exception) {
+            log.warn("Unable to connect during startup, connection will be established later.", e)
+        }
+    }
+
     private fun connect(): Connection {
         log.info("Connecting to JMS broker...")
         adapter = adapter(provider)
@@ -100,7 +109,7 @@ class JmsMessageConsumer : MessageConsumer {
                     disconnect()
                 }
             }
-            error("Could not acquire session.")
+            throw JmsException("Could not acquire session.")
         }
         with(prepare()) { block(first, second) }
     }
@@ -122,3 +131,5 @@ class JmsMessageConsumer : MessageConsumer {
 
     private data class ResolvedQueue(val queue: Queue, val producer: MessageProducer)
 }
+
+private class JmsException(message: String, cause: Throwable? = null) : RecoverableException(message, cause)

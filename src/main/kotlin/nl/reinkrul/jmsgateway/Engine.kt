@@ -21,24 +21,34 @@ class Engine(@Autowired private val messageSource: MessageSource,
     @Async
     fun start() {
         log.info("Starting engine...")
-        while (running)
-            try {
-                consume()
-                if (Thread.currentThread().isInterrupted)
-                    throw InterruptedException()
-            } catch (e: InterruptedException) {
-                log.debug("Thread was interrupted, stopping...")
-                running = false
-            }
+        try {
+            while (running)
+                try {
+                    consume()
+                    if (Thread.currentThread().isInterrupted)
+                        throw InterruptedException()
+                } catch (e: InterruptedException) {
+                    log.debug("Thread was interrupted, stopping...")
+                    running = false
+                }
+        } catch (e: Exception) {
+            log.error("An unexpected error occured, application will exit.", e)
+            Runtime.getRuntime().exit(1)
+        }
     }
 
     private fun consume() {
-        val message = messageSource.acquire()
+        val message = try {
+            messageSource.acquire()
+        } catch (e: RecoverableException) {
+            log.error("Recoverable error occurred while acquiring message.", e)
+            return
+        }
         log.info("Processing message: {} (retries: {})", message.id, message.retries)
         try {
             messageConsumer.consume(message)
-        } catch (e: Exception) {
-            log.error("Error while processing message: {}", message.id, e)
+        } catch (e: RecoverableException) {
+            log.error("Recoverable error occurred while processing message: {}", message.id, e)
             messageSource.registerDeliveryFailed(message)
             return
         }

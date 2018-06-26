@@ -4,6 +4,7 @@
  */
 package nl.reinkrul.jmsgateway.jdbc
 
+import nl.reinkrul.jmsgateway.RecoverableException
 import nl.reinkrul.jmsgateway.Message
 import nl.reinkrul.jmsgateway.MessageSource
 import nl.reinkrul.jmsgateway.MessageStatus
@@ -11,7 +12,9 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.sql.Connection
+import java.sql.PreparedStatement
 import java.sql.ResultSet
+import java.sql.SQLException
 import java.util.UUID
 import javax.annotation.PostConstruct
 import javax.annotation.PreDestroy
@@ -27,21 +30,28 @@ class JdbcMessageSource : MessageSource {
     private lateinit var connection: Connection
 
     override fun acquire(): Message {
-        log.info("Acquiring message.")
+        log.debug("Acquiring message.")
         while (true) {
-            val message = query()
+            // TODO: Better error handling
+            val message = try {
+                query()
+            } catch (e: SQLException) {
+                log.error("A database error occured while acquiring message.", e)
+                // Block to avoid spamming the system
+                Thread.sleep(5000)
+                null
+            }
             if (message != null) {
-                log.info("Acquired message: {}", message.id)
+                log.debug("Acquired message: {}", message.id)
                 return message
             } else {
                 Thread.sleep(500)
             }
         }
-
     }
 
     private fun query(): Message? =
-            // TODO: 'time_last_failed_attempt'
+    // TODO: 'time_last_failed_attempt'
             connection.prepareStatement("SELECT * FROM jms_message " +
                     "WHERE status='${MessageStatus.PENDING}' " +
                     "AND retries <= max_retries " +
@@ -63,11 +73,9 @@ class JdbcMessageSource : MessageSource {
 
     override fun registerDeliveryFailed(message: Message) {
         log.info("Registering a failed delivery: {}", message.id)
-        connection.prepareStatement("UPDATE jms_message SET retries=retries + 1, status='${MessageStatus.PENDING}', last_change=NOW() WHERE id=? LIMIT 1").use { statement ->
+        connection.prepareStatement("UPDATE jms_message SET retries=retries + 1, status='${MessageStatus.PENDING}', last_change=NOW() WHERE id=?").use { statement ->
             statement.setString(1, message.id.toString())
-            if (statement.executeUpdate() != 1) {
-                error("Expected update query to update exactly 1 record.")
-            }
+            executeSingleUpdate(statement)
         }
     }
 
@@ -90,11 +98,12 @@ class JdbcMessageSource : MessageSource {
         connection.prepareStatement("UPDATE jms_message SET status=?, last_change=NOW() WHERE id=?").use { statement ->
             statement.setString(1, status.toString())
             statement.setString(2, message.id.toString())
-            if (statement.executeUpdate() != 1) {
-                error("Expected update query to update exactly 1 record.")
-            }
+            executeSingleUpdate(statement)
         }
     }
+
+    private fun executeSingleUpdate(statement: PreparedStatement) =
+            statement.executeUpdate().let { if (it != 1) throw JdbcException("Expected update query to update exactly 1 record (it updated $it).") }
 }
 
 fun parseMessage(result: ResultSet): Message {
@@ -106,3 +115,5 @@ fun parseMessage(result: ResultSet): Message {
             retries = result.getInt("retries")
     )
 }
+
+private class JdbcException(message: String, cause: Throwable? = null) : RecoverableException(message, cause)
